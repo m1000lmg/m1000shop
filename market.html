@@ -1,69 +1,83 @@
-<!-- market.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Market - Customs Market</title>
   <script src="https://cdn.tailwindcss.com"></script>
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyA7IGIzhaH7F2-P-gZ3A7ARUfMFE7s4iBM",
-    authDomain: "customs-market.firebaseapp.com",
-    projectId: "customs-market",
-    storageBucket: "customs-market.appspot.com",  // ← corrected!
-    messagingSenderId: "242049210602",
-    appId: "1:242049210602:web:9e87db4ca3ecdb942ddf93",
-    measurementId: "G-LSDKL5TE3D"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-  window.db = getFirestore(app);
-  window.storage = getStorage(app);
-</script>
-
 </head>
 <body class="bg-white text-gray-800">
+
+  <!-- Header -->
   <header class="bg-black text-white p-4 flex justify-between items-center">
     <h1 class="text-xl font-bold">Customs Market</h1>
     <nav class="space-x-4">
-      <a href="index.html" class="hover:underline">Home</a>
-      <a href="market.html" class="hover:underline font-bold">Market</a>
+      <a href="index.html" class="hover:underline font-bold">Home</a>
+      <a href="market.html" class="hover:underline">Market</a>
       <a href="sell.html" class="hover:underline">Sell</a>
     </nav>
   </header>
 
-  <section class="p-6">
-    <h2 class="text-2xl font-bold mb-4">Marketplace</h2>
-    <div id="productContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
-  </section>
+  <!-- Market Section -->
+  <main class="p-6">
+    <h2 class="text-2xl font-bold text-center mb-6">Available Products</h2>
+    <div id="productContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+      <!-- Products will be injected here by JavaScript -->
+    </div>
+  </main>
 
-  <script src="products.js"></script>
-  <script>
-    const stored = localStorage.getItem("customsProducts");
-    const storedProducts = stored ? JSON.parse(stored) : [];
-    const allProducts = [...products, ...storedProducts];
+  <!-- Footer -->
+  <footer class="text-center py-6 text-sm text-gray-500">
+    &copy; 2025 Customs Market. All rights reserved.
+  </footer>
+
+  <!-- Firebase Product Loading Script -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA7IGIzhaH7F2-P-gZ3A7ARUfMFE7s4iBM",
+      authDomain: "customs-market.firebaseapp.com",
+      projectId: "customs-market",
+      storageBucket: "customs-market.appspot.com",
+      messagingSenderId: "242049210602",
+      appId: "1:242049210602:web:9e87db4ca3ecdb942ddf93",
+      measurementId: "G-LSDKL5TE3D"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
     const container = document.getElementById("productContainer");
 
-    allProducts.forEach(p => {
-      const card = document.createElement("div");
-      card.className = "border rounded-xl p-4 shadow hover:shadow-md transition";
-      card.innerHTML = `
-        <img src="${p.image}" alt="${p.name}" class="rounded mb-2">
-        <h3 class="font-semibold text-lg">${p.name}</h3>
-        <p class="text-sm text-gray-600">By: ${p.seller}</p>
-        <p class="font-bold mt-1">${p.price}</p>
-        <a href="product.html?id=${p.id}" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Product</a>
-      `;
-      container.appendChild(card);
-    });
+    async function loadProducts() {
+      const querySnapshot = await getDocs(collection(db, "products"));
+      if (querySnapshot.empty) {
+        container.innerHTML = "<p class='text-center col-span-3 text-gray-500'>No products yet. Be the first to upload!</p>";
+        return;
+      }
+
+      querySnapshot.forEach((doc) => {
+        const p = doc.data();
+
+        const card = document.createElement("div");
+        card.className = "border rounded-xl p-4 shadow hover:shadow-md transition bg-white";
+
+        card.innerHTML = `
+          <img src="${p.image}" alt="${p.name}" class="rounded mb-2 w-full h-48 object-cover">
+          <h3 class="font-semibold text-lg">${p.name}</h3>
+          <p class="text-sm text-gray-600">By: ${p.seller}</p>
+          <p class="font-bold mt-1">${p.price}</p>
+          <a href="product.html?id=${doc.id}" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Product</a>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    loadProducts();
   </script>
+
 </body>
 </html>
