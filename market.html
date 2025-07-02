@@ -1,40 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Market - Customs Market</title>
+  <title>Customs Market</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-white text-gray-800">
+<body class="bg-gray-50 text-gray-800">
 
-  <!-- Header -->
   <header class="bg-black text-white p-4 flex justify-between items-center">
-    <h1 class="text-xl font-bold">Customs Market</h1>
-    <nav class="space-x-4">
-      <a href="index.html" class="hover:underline font-bold">Home</a>
-      <a href="market.html" class="hover:underline">Market</a>
-      <a href="sell.html" class="hover:underline">Sell</a>
-    </nav>
+    <h1 class="text-xl font-bold">🎨 Customs Market</h1>
+    <div class="flex gap-4 items-center text-sm">
+      <a href="sell.html" class="underline">+ Upload</a>
+      <a href="admin.html" class="underline">Admin</a>
+    </div>
   </header>
 
-  <!-- Market Section -->
-  <main class="p-6">
-    <h2 class="text-2xl font-bold text-center mb-6">Available Products</h2>
-    <div id="productContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-      <!-- Products will be injected here by JavaScript -->
-    </div>
+  <main class="p-6 max-w-6xl mx-auto">
+    <div id="productList" class="grid sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+    <p id="empty" class="text-center text-gray-500 mt-8 hidden">🚫 No approved products yet.</p>
   </main>
 
-  <!-- Footer -->
-  <footer class="text-center py-6 text-sm text-gray-500">
-    &copy; 2025 Customs Market. All rights reserved.
+  <footer class="text-center text-xs text-gray-400 p-4">
+    &copy; 2025 Customs Market
   </footer>
 
-  <!-- Firebase Product Loading Script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, query, where, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyA7IGIzhaH7F2-P-gZ3A7ARUfMFE7s4iBM",
@@ -42,42 +35,60 @@
       projectId: "customs-market",
       storageBucket: "customs-market.appspot.com",
       messagingSenderId: "242049210602",
-      appId: "1:242049210602:web:9e87db4ca3ecdb942ddf93",
-      measurementId: "G-LSDKL5TE3D"
+      appId: "1:242049210602:web:9e87db4ca3ecdb942ddf93"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const container = document.getElementById("productContainer");
+    const productList = document.getElementById("productList");
+    const emptyNotice = document.getElementById("empty");
 
     async function loadProducts() {
-      const querySnapshot = await getDocs(collection(db, "products"));
-      if (querySnapshot.empty) {
-        container.innerHTML = "<p class='text-center col-span-3 text-gray-500'>No products yet. Be the first to upload!</p>";
+      const q = query(collection(db, "products"), where("approved", "==", true));
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        emptyNotice.classList.remove("hidden");
         return;
       }
 
-      querySnapshot.forEach((doc) => {
-        const p = doc.data();
+      snapshot.forEach(docSnap => {
+        const p = docSnap.data();
+        const div = document.createElement("div");
+        div.className = "bg-white rounded shadow p-4 flex flex-col items-center text-center";
 
-        const card = document.createElement("div");
-        card.className = "border rounded-xl p-4 shadow hover:shadow-md transition bg-white";
-
-        card.innerHTML = `
-          <img src="${p.image}" alt="${p.name}" class="rounded mb-2 w-full h-48 object-cover">
-          <h3 class="font-semibold text-lg">${p.name}</h3>
-          <p class="text-sm text-gray-600">By: ${p.seller}</p>
-          <p class="font-bold mt-1">${p.price}</p>
-          <a href="product.html?id=${doc.id}" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Product</a>
+        div.innerHTML = `
+          <img src="${p.image}" alt="${p.name}" class="w-40 h-40 object-cover rounded mb-3 border" />
+          <h2 class="text-lg font-bold mb-1">${p.name}</h2>
+          <p class="text-sm text-gray-600 mb-1">${p.price}</p>
+          <p class="text-xs text-gray-500 mb-2">Seller: ${p.seller}</p>
+          <p class="text-xs text-blue-500 mb-2">Contact: ${p.contact}</p>
+          <button class="reportBtn text-red-500 text-xs underline" data-id="${docSnap.id}">⚠️ Report</button>
         `;
 
-        container.appendChild(card);
+        productList.appendChild(div);
+      });
+
+      // Add report handlers
+      document.querySelectorAll(".reportBtn").forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id;
+          try {
+            await updateDoc(doc(db, "products", id), { reported: true });
+            btn.textContent = "✅ Reported";
+            btn.disabled = true;
+            btn.classList.add("opacity-50");
+          } catch (err) {
+            alert("❌ Failed to report.");
+            console.error(err);
+          }
+        };
       });
     }
 
     loadProducts();
   </script>
-
 </body>
 </html>
+
