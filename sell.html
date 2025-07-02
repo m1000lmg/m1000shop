@@ -3,48 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sell Product</title>
+  <title>Upload to Customs Market</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 text-gray-800">
 
-  <header class="bg-black text-white p-4 flex justify-between">
-    <h1 class="text-xl font-bold">Sell a Product</h1>
-    <div id="authArea" class="flex items-center gap-4">
-      <button id="loginBtn" class="bg-white text-black px-4 py-1 rounded hidden">Sign in with Google</button>
-      <div id="userInfo" class="hidden text-sm">
-        Logged in as: <span id="userName"></span>
-        <button id="logoutBtn" class="ml-2 underline text-red-400">Logout</button>
-      </div>
-    </div>
+  <header class="bg-black text-white p-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold">Upload Product</h1>
+    <a href="index.html" class="underline text-sm">← Back to Market</a>
   </header>
 
-  <main class="p-6 max-w-xl mx-auto">
-    <form id="uploadForm" class="space-y-4 hidden">
-      <input id="name" placeholder="Product Name" class="w-full p-2 border rounded" />
-      <input id="price" placeholder="Price (e.g. $10)" class="w-full p-2 border rounded" />
-      <input id="seller" placeholder="Your Name or Brand" class="w-full p-2 border rounded" />
-      <input id="contact" placeholder="Contact (Email or Discord)" class="w-full p-2 border rounded" />
-      <input id="image" placeholder="Image URL" class="w-full p-2 border rounded" />
+  <main class="p-6 max-w-xl mx-auto space-y-6">
+    <div id="cooldownNotice" class="text-center text-red-500 hidden"></div>
+
+    <form id="uploadForm" class="space-y-4">
+      <input id="name" placeholder="Product Name" class="w-full p-2 border rounded" required />
+      <input id="price" placeholder="Price (e.g. $10)" class="w-full p-2 border rounded" required />
+      <input id="seller" placeholder="Your Name or Brand" class="w-full p-2 border rounded" required />
+      <input id="contact" placeholder="Contact (email or Discord)" class="w-full p-2 border rounded" required />
+      <input id="image" placeholder="Image URL" class="w-full p-2 border rounded" required />
       <button type="submit" class="bg-black text-white px-4 py-2 w-full rounded">Upload</button>
     </form>
 
-    <p id="notSignedIn" class="text-center text-gray-500 mt-4">🔐 Sign in to upload products.</p>
+    <p class="text-center text-sm text-gray-500">Note: Your product will be reviewed before going public.</p>
   </main>
 
-  <script type="module">
-    // 1. Firebase imports
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-    import {
-      getAuth,
-      signInWithPopup,
-      GoogleAuthProvider,
-      onAuthStateChanged,
-      signOut
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  <footer class="text-center text-gray-400 text-xs py-6">
+    &copy; 2025 Customs Market
+  </footer>
 
-    // 2. Firebase config
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyA7IGIzhaH7F2-P-gZ3A7ARUfMFE7s4iBM",
       authDomain: "customs-market.firebaseapp.com",
@@ -56,45 +48,22 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
 
-    // 3. DOM elements
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const userInfo = document.getElementById("userInfo");
-    const userName = document.getElementById("userName");
-    const uploadForm = document.getElementById("uploadForm");
-    const notSignedIn = document.getElementById("notSignedIn");
+    // Cooldown logic
+    const lastUpload = localStorage.getItem("lastUploadTime");
+    const now = Date.now();
+    const hoursSince = lastUpload ? (now - parseInt(lastUpload)) / 1000 / 60 / 60 : Infinity;
 
-    // 4. Auth state detection
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        console.log("✅ Logged in as", user.email);
-        loginBtn.classList.add("hidden");
-        userInfo.classList.remove("hidden");
-        userName.textContent = user.displayName;
-        uploadForm.classList.remove("hidden");
-        notSignedIn.classList.add("hidden");
-      } else {
-        console.log("🔐 Not signed in");
-        loginBtn.classList.remove("hidden");
-        userInfo.classList.add("hidden");
-        uploadForm.classList.add("hidden");
-        notSignedIn.classList.remove("hidden");
-      }
-    });
+    const form = document.getElementById("uploadForm");
+    const notice = document.getElementById("cooldownNotice");
 
-    // 5. Sign in & out
-    loginBtn.onclick = () => signInWithPopup(auth, provider).catch((err) => {
-      console.error("Login error:", err.message);
-      alert("Login failed: " + err.message);
-    });
+    if (hoursSince < 10) {
+      form.classList.add("hidden");
+      notice.textContent = `⏳ You must wait ${Math.ceil(10 - hoursSince)} hour(s) before uploading again.`;
+      notice.classList.remove("hidden");
+    }
 
-    logoutBtn.onclick = () => signOut(auth).then(() => location.reload());
-
-    // 6. Upload form
-    uploadForm.onsubmit = async (e) => {
+    form.onsubmit = async (e) => {
       e.preventDefault();
 
       const name = document.getElementById("name").value.trim();
@@ -104,20 +73,32 @@
       const image = document.getElementById("image").value.trim();
 
       if (!name || !price || !seller || !contact || !image) {
-        alert("❗ Fill all fields!");
+        alert("❗ Please fill in all fields.");
         return;
       }
 
       try {
-        await addDoc(collection(db, "products"), { name, price, seller, contact, image });
-        alert("✅ Product uploaded!");
-        uploadForm.reset();
+        await addDoc(collection(db, "products"), {
+          name, price, seller, contact, image,
+          approved: false,
+          reported: false,
+          createdAt: serverTimestamp()
+        });
+
+        localStorage.setItem("lastUploadTime", Date.now());
+        alert("✅ Uploaded! Your product will be reviewed.");
+        form.reset();
+        form.classList.add("hidden");
+        notice.textContent = "⏳ You’ve uploaded. Please wait 10 hours before uploading again.";
+        notice.classList.remove("hidden");
+
       } catch (err) {
-        console.error("Upload error:", err.message);
-        alert("❌ Failed to upload");
+        console.error("Upload error:", err);
+        alert("❌ Upload failed.");
       }
     };
   </script>
 </body>
 </html>
+
 
