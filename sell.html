@@ -1,21 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Upload Product - Customs Market</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 text-gray-900">
+<header class="bg-black text-white p-4 flex justify-between items-center">
+  <h1 class="text-xl font-bold">Upload Product</h1>
 
-  <header class="bg-black text-white p-4 flex justify-between items-center">
-    <h1 class="text-xl font-bold">Upload Product</h1>
-    <div id="userInfo" class="text-sm hidden">
-      Logged in as: <span id="userName"></span>
-      <button id="logoutBtn" class="ml-2 underline text-red-400">Logout</button>
+  <div class="flex gap-4 items-center">
+    <div id="userInfo" class="hidden text-sm">
+      Logged in as: <span id="userName" class="font-semibold"></span>
+      <button id="logoutBtn" class="ml-2 text-red-400 underline">Logout</button>
     </div>
-    <button id="loginBtn" class="bg-white text-black px-4 py-1 rounded hidden">Sign in with Google</button>
-  </header>
+
+    <button id="loginBtn" class="bg-white text-black px-4 py-1 rounded">Sign in with Google</button>
+  </div>
+</header>
 
   <main class="p-6 max-w-xl mx-auto">
     <form id="uploadForm" class="space-y-4 hidden">
