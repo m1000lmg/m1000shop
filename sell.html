@@ -1,34 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
-<header class="bg-black text-white p-4 flex justify-between items-center">
-  <h1 class="text-xl font-bold">Upload Product</h1>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Upload Product</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900">
 
-  <div class="flex gap-4 items-center">
-    <div id="userInfo" class="hidden text-sm">
-      Logged in as: <span id="userName" class="font-semibold"></span>
-      <button id="logoutBtn" class="ml-2 text-red-400 underline">Logout</button>
+  <header class="bg-black text-white p-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold">Upload Product</h1>
+    <div class="flex gap-4 items-center">
+      <div id="userInfo" class="hidden text-sm">
+        Logged in as: <span id="userName" class="font-semibold"></span>
+        <button id="logoutBtn" class="ml-2 text-red-400 underline">Logout</button>
+      </div>
+      <button id="loginBtn" class="bg-white text-black px-4 py-1 rounded">Sign in with Google</button>
     </div>
-
-    <button id="loginBtn" class="bg-white text-black px-4 py-1 rounded">Sign in with Google</button>
-  </div>
-</header>
+  </header>
 
   <main class="p-6 max-w-xl mx-auto">
     <form id="uploadForm" class="space-y-4 hidden">
       <input id="name" class="w-full p-2 border rounded" placeholder="Product Name" required />
       <input id="price" class="w-full p-2 border rounded" placeholder="Price (e.g. $5)" required />
-      <input id="seller" class="w-full p-2 border rounded" placeholder="Your Name / Brand" required />
-      <input id="contact" class="w-full p-2 border rounded" placeholder="Contact (Email or Discord)" required />
+      <input id="seller" class="w-full p-2 border rounded" placeholder="Your Name" required />
+      <input id="contact" class="w-full p-2 border rounded" placeholder="Email or Discord" required />
       <input id="image" class="w-full p-2 border rounded" placeholder="Image URL" required />
       <button type="submit" class="bg-black text-white px-4 py-2 rounded w-full">Upload Product</button>
     </form>
 
     <p id="notSignedIn" class="text-center text-gray-500 mt-6">🔐 Please sign in to upload products.</p>
   </main>
-
-  <footer class="text-center py-6 text-sm text-gray-500">
-    &copy; 2025 Customs Market
-  </footer>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -62,64 +64,67 @@
     const uploadForm = document.getElementById("uploadForm");
     const notSignedIn = document.getElementById("notSignedIn");
 
-    loginBtn.addEventListener("click", () => {
-      signInWithPopup(auth, provider)
-        .then(result => {
-          console.log("Logged in as", result.user.displayName);
-        })
-        .catch(err => {
-          alert("Login error: " + err.message);
-        });
-    });
+    loginBtn.onclick = async () => {
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (err) {
+        alert("❌ Login failed: " + err.message);
+        console.error(err);
+      }
+    };
 
-    logoutBtn.addEventListener("click", () => {
-      signOut(auth).then(() => location.reload());
-    });
+    logoutBtn.onclick = () => signOut(auth).then(() => location.reload());
 
-    onAuthStateChanged(auth, user => {
+    onAuthStateChanged(auth, (user) => {
       if (user) {
         userInfo.classList.remove("hidden");
         logoutBtn.classList.remove("hidden");
+        loginBtn.classList.add("hidden");
         userName.textContent = user.displayName;
         uploadForm.classList.remove("hidden");
         notSignedIn.classList.add("hidden");
-        loginBtn.classList.add("hidden");
+        console.log("✅ Logged in as", user.uid);
       } else {
         loginBtn.classList.remove("hidden");
+        logoutBtn.classList.add("hidden");
+        userInfo.classList.add("hidden");
+        uploadForm.classList.add("hidden");
+        notSignedIn.classList.remove("hidden");
+        console.log("🟡 Not signed in");
       }
     });
 
-    uploadForm.addEventListener("submit", async (e) => {
+    uploadForm.onsubmit = async (e) => {
       e.preventDefault();
 
-      const name = document.getElementById("name").value.trim();
-      const price = document.getElementById("price").value.trim();
-      const seller = document.getElementById("seller").value.trim();
-      const contact = document.getElementById("contact").value.trim();
-      const image = document.getElementById("image").value.trim();
+      const name = nameInput.value.trim();
+      const price = priceInput.value.trim();
+      const seller = sellerInput.value.trim();
+      const contact = contactInput.value.trim();
+      const image = imageInput.value.trim();
 
       if (!name || !price || !seller || !contact || !image) {
-        alert("Please fill out all fields.");
+        alert("Fill all fields.");
         return;
       }
 
       try {
         await addDoc(collection(db, "products"), {
-          name,
-          price,
-          seller,
-          contact,
-          image
+          name, price, seller, contact, image
         });
-        alert("✅ Product uploaded!");
+        alert("✅ Uploaded!");
         uploadForm.reset();
       } catch (err) {
-        console.error("Upload error:", err);
-        alert("❌ Upload failed. Check console.");
+        console.error("Upload failed", err);
+        alert("❌ Upload failed");
       }
-    });
+    };
+
+    const nameInput = document.getElementById("name");
+    const priceInput = document.getElementById("price");
+    const sellerInput = document.getElementById("seller");
+    const contactInput = document.getElementById("contact");
+    const imageInput = document.getElementById("image");
   </script>
 </body>
 </html>
-
-
