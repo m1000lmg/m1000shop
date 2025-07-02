@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel - Customs Market</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+  <header class="bg-black text-white p-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold">Admin Panel</h1>
+    <a href="index.html" class="hover:underline text-sm">← Back to Home</a>
+  </header>
+
+  <main class="p-6 max-w-6xl mx-auto">
+    <h2 class="text-2xl font-bold mb-4">All Products</h2>
+    <div id="productList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <!-- Products will load here -->
+    </div>
+  </main>
+
+  <footer class="text-center py-6 text-sm text-gray-500">
+    &copy; 2025 Customs Market
+  </footer>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA7IGIzhaH7F2-P-gZ3A7ARUfMFE7s4iBM",
+      authDomain: "customs-market.firebaseapp.com",
+      projectId: "customs-market",
+      storageBucket: "customs-market.appspot.com",
+      messagingSenderId: "242049210602",
+      appId: "1:242049210602:web:9e87db4ca3ecdb942ddf93",
+      measurementId: "G-LSDKL5TE3D"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const list = document.getElementById("productList");
+
+    async function loadProducts() {
+      const snapshot = await getDocs(collection(db, "products"));
+      list.innerHTML = "";
+
+      if (snapshot.empty) {
+        list.innerHTML = "<p class='text-gray-500'>No products found.</p>";
+        return;
+      }
+
+      snapshot.forEach((docSnap) => {
+        const p = docSnap.data();
+        const id = docSnap.id;
+
+        const card = document.createElement("div");
+        card.className = "bg-white border rounded-lg shadow p-4";
+
+        card.innerHTML = `
+          <img src="${p.image}" alt="${p.name}" class="rounded mb-2 w-full h-40 object-cover" />
+          <h3 class="text-lg font-semibold">${p.name}</h3>
+          <p class="text-sm text-gray-500">${p.seller}</p>
+          <p class="font-bold mb-2">${p.price}</p>
+          <button data-id="${id}" class="deleteBtn bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
+            🗑️ Delete
+          </button>
+        `;
+
+        list.appendChild(card);
+      });
+
+      attachDeleteEvents();
+    }
+
+    function attachDeleteEvents() {
+      document.querySelectorAll(".deleteBtn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const id = btn.getAttribute("data-id");
+          if (confirm("Are you sure you want to delete this product?")) {
+            await deleteDoc(doc(db, "products", id));
+            alert("Deleted.");
+            loadProducts(); // Refresh list
+          }
+        });
+      });
+    }
+
+    loadProducts();
+  </script>
+
+</body>
+</html>
