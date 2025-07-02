@@ -1,0 +1,63 @@
+<!-- sell.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sell - Customs Market</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white text-gray-800">
+  <header class="bg-black text-white p-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold">Customs Market</h1>
+    <nav class="space-x-4">
+      <a href="index.html" class="hover:underline">Home</a>
+      <a href="market.html" class="hover:underline">Market</a>
+      <a href="sell.html" class="hover:underline font-bold">Sell</a>
+    </nav>
+  </header>
+
+  <section class="p-6 max-w-xl mx-auto">
+    <h2 class="text-2xl font-bold mb-4">Upload Your Product</h2>
+    <form id="uploadForm" class="space-y-4">
+      <input type="text" id="name" placeholder="Product Name" class="w-full p-2 border rounded" required />
+      <input type="text" id="price" placeholder="Price (e.g. $10)" class="w-full p-2 border rounded" required />
+      <input type="text" id="seller" placeholder="Your Name or Alias" class="w-full p-2 border rounded" required />
+      <input type="text" id="email" placeholder="Email" class="w-full p-2 border rounded" required />
+      <input type="text" id="discord" placeholder="Discord Tag" class="w-full p-2 border rounded" required />
+      <textarea id="description" placeholder="Product Description" class="w-full p-2 border rounded" rows="4" required></textarea>
+      <input type="url" id="image" placeholder="Image URL" class="w-full p-2 border rounded" required />
+      <button type="submit" class="bg-black text-white px-6 py-2 rounded hover:bg-gray-800 transition">Upload</button>
+    </form>
+    <p id="status" class="mt-4 text-green-600 font-semibold hidden">Uploaded! Redirecting...</p>
+  </section>
+
+  <script>
+    document.getElementById("uploadForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const newProduct = {
+        id: Date.now(),
+        name: document.getElementById("name").value,
+        price: document.getElementById("price").value,
+        seller: document.getElementById("seller").value,
+        description: document.getElementById("description").value,
+        image: document.getElementById("image").value,
+        contact: {
+          email: document.getElementById("email").value,
+          discord: document.getElementById("discord").value
+        }
+      };
+
+      const stored = localStorage.getItem("customsProducts");
+      const products = stored ? JSON.parse(stored) : [];
+      products.push(newProduct);
+      localStorage.setItem("customsProducts", JSON.stringify(products));
+
+      document.getElementById("status").classList.remove("hidden");
+      setTimeout(() => window.location.href = "market.html", 1500);
+    });
+  </script>
+</body>
+</html>
+>

@@ -1,0 +1,58 @@
+<!-- product.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product - Customs Market</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white text-gray-800">
+  <header class="bg-black text-white p-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold">Customs Market</h1>
+    <nav class="space-x-4">
+      <a href="index.html" class="hover:underline">Home</a>
+      <a href="market.html" class="hover:underline">Market</a>
+      <a href="sell.html" class="hover:underline">Sell</a>
+    </nav>
+  </header>
+
+  <section class="p-6 max-w-3xl mx-auto" id="productSection">
+    <p class="text-gray-500">Loading...</p>
+  </section>
+
+  <script src="products.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const id = parseInt(params.get("id"));
+    const stored = localStorage.getItem("customsProducts");
+    const storedProducts = stored ? JSON.parse(stored) : [];
+    const allProducts = [...products, ...storedProducts];
+    const product = allProducts.find(p => p.id === id);
+
+    const section = document.getElementById("productSection");
+
+    if (product) {
+      section.innerHTML = `
+        <div class="flex flex-col md:flex-row gap-6">
+          <img src="${product.image}" alt="${product.name}" class="rounded shadow w-full md:w-1/2">
+          <div>
+            <h2 class="text-2xl font-bold">${product.name}</h2>
+            <p class="text-sm text-gray-600 mt-1">By: ${product.seller}</p>
+            <p class="font-bold mt-3 text-lg">${product.price}</p>
+            <p class="mt-4 text-gray-700">${product.description}</p>
+            <div class="mt-6">
+              <p class="font-semibold">Contact Seller:</p>
+              <p class="text-sm text-gray-800">📧 ${product.contact.email}</p>
+              <p class="text-sm text-gray-800">💬 Discord: ${product.contact.discord}</p>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      section.innerHTML = `<p class="text-red-500 font-semibold">Product not found.</p>`;
+    }
+  </script>
+</body>
+</html>
+
