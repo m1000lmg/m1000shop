@@ -3,111 +3,127 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sell a Product - Customs Market</title>
+  <title>Upload Product - Customs Market</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-white text-gray-800">
+<body class="bg-gray-50 text-gray-900">
 
-  <!-- Header -->
   <header class="bg-black text-white p-4 flex justify-between items-center">
-    <h1 class="text-xl font-bold">Customs Market</h1>
-    <nav class="space-x-4">
-      <a href="index.html" class="hover:underline font-bold">Home</a>
-      <a href="market.html" class="hover:underline">Market</a>
-      <a href="sell.html" class="hover:underline">Sell</a>
-    </nav>
+    <h1 class="text-xl font-bold">Upload Product</h1>
+    <div id="userInfo" class="text-sm hidden">
+      Logged in as: <span id="userName"></span>
+      <button id="logoutBtn" class="ml-2 underline text-red-400">Logout</button>
+    </div>
+    <button id="loginBtn" class="bg-white text-black px-4 py-1 rounded hidden">Sign in with Google</button>
   </header>
 
-  <!-- Upload Form -->
-  <main class="max-w-2xl mx-auto p-6">
-    <h2 class="text-2xl font-bold mb-6">Upload Your Product</h2>
-    <form id="uploadForm" class="space-y-4">
-
-      <input type="text" name="name" placeholder="Product Name" required class="w-full border p-2 rounded" />
-      <input type="text" name="price" placeholder="Price (e.g., $10)" required class="w-full border p-2 rounded" />
-      <input type="text" name="seller" placeholder="Your Name or Alias" required class="w-full border p-2 rounded" />
-      <input type="email" name="email" placeholder="Your Email" required class="w-full border p-2 rounded" />
-      <input type="text" name="discord" placeholder="Your Discord (e.g. user#1234)" required class="w-full border p-2 rounded" />
-      <textarea name="description" placeholder="Describe your product..." required class="w-full border p-2 rounded h-28"></textarea>
-      <input type="file" name="image" id="image" accept="image/*" required class="w-full" />
-
-      <button type="submit" class="bg-black text-white px-6 py-3 rounded hover:bg-gray-800 transition">
-        Upload Product
-      </button>
+  <main class="p-6 max-w-xl mx-auto">
+    <form id="uploadForm" class="space-y-4 hidden">
+      <input id="name" class="w-full p-2 border rounded" placeholder="Product Name" required />
+      <input id="price" class="w-full p-2 border rounded" placeholder="Price (e.g. $5)" required />
+      <input id="seller" class="w-full p-2 border rounded" placeholder="Your Name / Brand" required />
+      <input id="contact" class="w-full p-2 border rounded" placeholder="Contact (Email or Discord)" required />
+      <input id="image" class="w-full p-2 border rounded" placeholder="Image URL" required />
+      <button type="submit" class="bg-black text-white px-4 py-2 rounded w-full">Upload Product</button>
     </form>
+
+    <p id="notSignedIn" class="text-center text-gray-500 mt-6">🔐 Please sign in to upload products.</p>
   </main>
 
-  <!-- Footer -->
   <footer class="text-center py-6 text-sm text-gray-500">
-    &copy; 2025 Customs Market. All rights reserved.
+    &copy; 2025 Customs Market
   </footer>
 
-  <!-- Firebase Upload Script -->
   <script type="module">
-    // Firebase SDKs
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-    // Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyA7IGIzhaH7F2-P-gZ3A7ARUfMFE7s4iBM",
       authDomain: "customs-market.firebaseapp.com",
       projectId: "customs-market",
-      storageBucket: "customs-market.appspot.com", // FIXED spelling!
+      storageBucket: "customs-market.appspot.com",
       messagingSenderId: "242049210602",
-      appId: "1:242049210602:web:9e87db4ca3ecdb942ddf93",
-      measurementId: "G-LSDKL5TE3D"
+      appId: "1:242049210602:web:9e87db4ca3ecdb942ddf93"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const storage = getStorage(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
 
-    // Handle form submit
-    const form = document.getElementById("uploadForm");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const userInfo = document.getElementById("userInfo");
+    const userName = document.getElementById("userName");
+    const uploadForm = document.getElementById("uploadForm");
+    const notSignedIn = document.getElementById("notSignedIn");
 
-    form.addEventListener("submit", async (e) => {
+    loginBtn.addEventListener("click", () => {
+      signInWithPopup(auth, provider)
+        .then(result => {
+          console.log("Logged in as", result.user.displayName);
+        })
+        .catch(err => {
+          alert("Login error: " + err.message);
+        });
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      signOut(auth).then(() => location.reload());
+    });
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        userInfo.classList.remove("hidden");
+        logoutBtn.classList.remove("hidden");
+        userName.textContent = user.displayName;
+        uploadForm.classList.remove("hidden");
+        notSignedIn.classList.add("hidden");
+        loginBtn.classList.add("hidden");
+      } else {
+        loginBtn.classList.remove("hidden");
+      }
+    });
+
+    uploadForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const name = form.name.value;
-      const price = form.price.value;
-      const seller = form.seller.value;
-      const email = form.email.value;
-      const discord = form.discord.value;
-      const description = form.description.value;
-      const imageFile = form.image.files[0];
+      const name = document.getElementById("name").value.trim();
+      const price = document.getElementById("price").value.trim();
+      const seller = document.getElementById("seller").value.trim();
+      const contact = document.getElementById("contact").value.trim();
+      const image = document.getElementById("image").value.trim();
+
+      if (!name || !price || !seller || !contact || !image) {
+        alert("Please fill out all fields.");
+        return;
+      }
 
       try {
-        // Upload image to Firebase Storage
-        const imgRef = ref(storage, "product-images/" + Date.now() + "-" + imageFile.name);
-        await uploadBytes(imgRef, imageFile);
-        const imageURL = await getDownloadURL(imgRef);
-
-        // Save product data to Firestore
         await addDoc(collection(db, "products"), {
           name,
           price,
           seller,
-          description,
-          image: imageURL,
-          contact: {
-            email,
-            discord
-          }
+          contact,
+          image
         });
-
-        alert("✅ Product uploaded successfully!");
-        window.location.href = "market.html";
-
+        alert("✅ Product uploaded!");
+        uploadForm.reset();
       } catch (err) {
-        console.error("Upload failed", err);
-        alert("❌ Failed to upload product: " + err.message);
+        console.error("Upload error:", err);
+        alert("❌ Upload failed. Check console.");
       }
     });
   </script>
-
 </body>
 </html>
+
 
