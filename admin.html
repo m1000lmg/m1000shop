@@ -3,36 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Panel</title>
+  <title>Admin Panel - Customs Market</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-gray-100 text-gray-900">
 
   <header class="bg-black text-white p-4 flex justify-between items-center">
     <h1 class="text-xl font-bold">Admin Panel</h1>
-    <button id="logoutBtn" class="text-sm hover:underline hidden">Logout</button>
+    <div class="text-sm" id="adminInfo">🔐 Verifying admin...</div>
   </header>
 
-  <main class="p-6 max-w-6xl mx-auto">
-    <div id="loginSection" class="text-center">
-      <p class="mb-4">🔐 Please log in as admin to continue</p>
-      <button id="loginBtn" class="bg-black text-white px-6 py-2 rounded">Sign in with Google</button>
-    </div>
-
-    <div id="adminPanel" class="hidden">
-      <h2 class="text-2xl font-bold mb-4">All Products</h2>
-      <div id="productList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
-    </div>
+  <main class="p-6 max-w-4xl mx-auto">
+    <div id="productList" class="grid gap-6"></div>
+    <p id="status" class="text-center text-gray-500 mt-8 hidden">✅ All caught up! No pending uploads.</p>
   </main>
-
-  <footer class="text-center py-6 text-sm text-gray-500">
-    &copy; 2025 Customs Market
-  </footer>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, query, where, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signInWithPopup,
+      GoogleAuthProvider
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyA7IGIzhaH7F2-P-gZ3A7ARUfMFE7s4iBM",
@@ -46,90 +40,75 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
 
-    const ADMIN_UID = "gfdnsGPVNUdPSzF1GigPQZkoagP2"; // Your admin UID
+    const ADMIN_UID = "gfdnsGPVNUdPSzF1GigPQZkoagP2";
+    const adminInfo = document.getElementById("adminInfo");
+    const productList = document.getElementById("productList");
+    const status = document.getElementById("status");
 
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const loginSection = document.getElementById("loginSection");
-    const adminPanel = document.getElementById("adminPanel");
+    function renderProduct(docId, data) {
+      const div = document.createElement("div");
+      div.className = "bg-white shadow rounded p-4 border";
 
-    loginBtn.onclick = async () => {
-      const provider = new GoogleAuthProvider();
-      try {
-        await signInWithPopup(auth, provider);
-      } catch (err) {
-        alert("Login failed: " + err.message);
-      }
-    };
+      div.innerHTML = `
+        <h2 class="text-lg font-bold mb-1">${data.name}</h2>
+        <img src="${data.image}" alt="${data.name}" class="w-32 h-32 object-cover mb-2 rounded border" />
+        <p><strong>Price:</strong> ${data.price}</p>
+        <p><strong>Seller:</strong> ${data.seller}</p>
+        <p><strong>Contact:</strong> ${data.contact}</p>
+        <div class="mt-4 flex gap-4">
+          <button class="approveBtn bg-green-600 text-white px-3 py-1 rounded" data-id="${docId}">✅ Approve</button>
+          <button class="deleteBtn bg-red-600 text-white px-3 py-1 rounded" data-id="${docId}">🗑 Delete</button>
+        </div>
+      `;
 
-    logoutBtn.onclick = async () => {
-      await signOut(auth);
-      location.reload();
-    };
-
-    function showAdminUI() {
-      loginSection.classList.add("hidden");
-      adminPanel.classList.remove("hidden");
-      logoutBtn.classList.remove("hidden");
+      productList.appendChild(div);
     }
 
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        console.log("Signed in as:", user.email);
-        if (user.uid === ADMIN_UID) {
-          showAdminUI();
-          loadProducts();
-        } else {
-          alert("❌ Not authorized");
-          await signOut(auth);
-          window.location.href = "index.html";
+    function loadUnapprovedProducts() {
+      const q = query(collection(db, "products"), where("approved", "==", false));
+      getDocs(q).then(snapshot => {
+        if (snapshot.empty) {
+          status.classList.remove("hidden");
+          return;
         }
-      }
-    });
 
-    async function loadProducts() {
-      const list = document.getElementById("productList");
-      const snapshot = await getDocs(collection(db, "products"));
-      list.innerHTML = "";
+        snapshot.forEach(docSnap => {
+          renderProduct(docSnap.id, docSnap.data());
+        });
 
-      if (snapshot.empty) {
-        list.innerHTML = "<p class='text-gray-500'>No products found.</p>";
-        return;
-      }
+        // Button handlers
+        document.querySelectorAll(".approveBtn").forEach(btn => {
+          btn.onclick = async () => {
+            const id = btn.dataset.id;
+            await updateDoc(doc(db, "products", id), { approved: true });
+            btn.parentElement.parentElement.remove();
+          };
+        });
 
-      snapshot.forEach((docSnap) => {
-        const p = docSnap.data();
-        const id = docSnap.id;
-
-        const card = document.createElement("div");
-        card.className = "bg-white border rounded-lg shadow p-4";
-
-        card.innerHTML = `
-          <img src="${p.image}" alt="${p.name}" class="rounded mb-2 w-full h-40 object-cover" />
-          <h3 class="text-lg font-semibold">${p.name}</h3>
-          <p class="text-sm text-gray-500">${p.seller}</p>
-          <p class="font-bold mb-2">${p.price}</p>
-          <button data-id="${id}" class="deleteBtn bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
-            🗑️ Delete
-          </button>
-        `;
-
-        list.appendChild(card);
-      });
-
-      document.querySelectorAll(".deleteBtn").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          const id = btn.getAttribute("data-id");
-          if (confirm("Delete this product?")) {
+        document.querySelectorAll(".deleteBtn").forEach(btn => {
+          btn.onclick = async () => {
+            const id = btn.dataset.id;
             await deleteDoc(doc(db, "products", id));
-            alert("Deleted.");
-            loadProducts();
-          }
+            btn.parentElement.parentElement.remove();
+          };
         });
       });
     }
-  </script>
 
+    // Auth check
+    onAuthStateChanged(auth, (user) => {
+      if (user && user.uid === ADMIN_UID) {
+        adminInfo.textContent = `✅ Logged in as Admin (${user.displayName})`;
+        loadUnapprovedProducts();
+      } else {
+        signInWithPopup(auth, provider).catch((err) => {
+          adminInfo.textContent = "❌ Auth failed";
+          console.error("Login error:", err.message);
+        });
+      }
+    });
+  </script>
 </body>
 </html>
